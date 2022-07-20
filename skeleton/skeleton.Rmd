@@ -1,0 +1,213 @@
+---
+title: 'EBMLive 2022: Demo Manuscript'
+author:
+- name: Dr. X
+  email: x@ebm.ca
+  affiliation: EBMLive
+- name: Dr. Y
+  email: y@ebm.ca
+  affiliation: EBMLive
+address:
+- code: EBMLive
+  address: Department X, Street, City, Province, Postal Code
+- code: EBM Live
+  address: Department Y, Street, City, Province, Postal Code
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    keep_tex: yes
+    latex_engine: pdflatex
+    template: ~Krish/Dropbox/Krish_Work/pgy1/09-non-academic-resources/research/accepted/2021-07-14-dave-sackett-fellowship/clinical-manuscript-template-ebmlive2022/inst/rmarkdown/templates/ebmlive/resources/template.tex
+bibliography: references.bib
+csl: bmj.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = FALSE)
+```
+
+# Abstract
+**Objectives**: a clear state of the main aim of the study and the major hypothesis tested or research question posted. **Design**: including factors such as prospective, randomization, blinding, placebo control, case control, crossover, criterion standards for diagnostic tests, etc. **Setting**: include the level of care, be general vs. specific centres. **Participants**: numbers entering and completing the study, sex, and ethnic group if appropriate. **Interventions**: what, how, when, and for how long. **Main outcome measures**: those planned in protocol, those finally measured. **Results**: main results with 95% confidence intervals and where appropriate, the exact level of statistical significant and the number needed to treat & harm. **Conclusions**: primary conclusions and their implications, suggesting areas for further research. **Registration**: the registry name and registration number, mandatory for clinical trials, encouraged for systematic reviews + observational studies. 
+
+**What is already known on this topic**: Summarize the state of scientific knowledge on this subject before you did your study, and why this study needs to be done.
+**What this study adds**: summarize what we now know as a result of this study that we did not know before.
+**How this study might affect research, practice, or policy**: summarize the implications of this study. @allaire_rticles_2022, @colman_first_1999, @gill_developing_2022, @hohman_communicating_2020, @noauthor_composing_2017, @noauthor_history_nodate, @noauthor_welcome_2020, @perkel_cut_2022. 
+
+# Introduction
+
+# Methods
+
+## Trial design and oversight
+
+## Patients
+
+## Randomization & trial registration
+
+## Outcomes
+
+## Statistical analysis
+
+# Results
+
+## Patients
+
+## Trial
+
+## Primary outcomes
+
+## Secondary outcomes
+
+## Adverse events
+
+# Discussion
+
+# Sample tables
+```{r echo = FALSE}
+
+# Example of rtables implementation for 'Table 1' figures on mock data found in the rtables package. 
+library(rtables)
+library(tibble)
+library(dplyr)
+
+ADSL <- ex_adsl  # Example ADSL dataset
+
+basic_table() %>%
+  split_cols_by("ARM") %>%
+  analyze(vars = "AGE", afun = function(x) {
+    in_rows(
+      "Mean (sd)" = rcell(c(mean(x), sd(x)), format = "xx.xx (xx.xx)"),
+      "Range" = rcell(range(x), format = "xx.xx - xx.xx")
+    )
+  }) %>%
+  build_table(ADSL)
+
+s_summary <- function(x) {
+  if (is.numeric(x)) {
+    in_rows(
+      "n" = rcell(sum(!is.na(x)), format = "xx"),
+      "Mean (sd)" = rcell(c(mean(x, na.rm = TRUE), sd(x, na.rm = TRUE)), format = "xx.xx (xx.xx)"),
+      "IQR" = rcell(IQR(x, na.rm = TRUE), format = "xx.xx"),
+      "min - max" = rcell(range(x, na.rm = TRUE), format = "xx.xx - xx.xx")
+    )
+  } else if (is.factor(x)) {
+    
+    vs <- as.list(table(x))
+    do.call(in_rows, lapply(vs, rcell, format = "xx"))
+    
+  } else (
+    stop("type not supported")
+  )
+}
+
+lyt <- basic_table() %>% 
+  split_cols_by(var = "ARM") %>%
+  analyze(c("AGE", "SEX"), afun = s_summary) 
+
+tbl <- build_table(lyt, ADSL)
+tbl
+
+``` 
+
+# Sample Kaplan-Meier curves
+```{r echo = FALSE}
+library(survival)
+library(survminer)
+library(lubridate)
+
+Surv(lung$time, lung$status)[1:10]
+f1 <- survfit(Surv(time, status) ~ 1, data = lung)
+names(f1)
+
+plot(survfit(Surv(time, status) ~ 1, data = lung), 
+     xlab = "Days", 
+     ylab = "Overall survival probability")
+
+```
+
+# Forest plot
+```{r echo = FALSE}
+library(tidyverse) # needed for 'glimpse'
+library(dmetar)
+library(meta)
+
+data(ThirdWave)
+glimpse(ThirdWave)
+
+m.gen <- metagen(TE = TE,
+                 seTE = seTE,
+                 studlab = Author,
+                 data = ThirdWave,
+                 sm = "SMD",
+                 fixed = FALSE,
+                 random = TRUE,
+                 method.tau = "REML",
+                 hakn = TRUE,
+                 title = "Third Wave Psychotherapies")
+
+forest.meta(m.gen,
+            leftlabs = c("Author", "g", "SE"))
+
+```
+
+# Consort diagram
+```{r echo = FALSE}
+
+library(consort)
+
+#Dummy data generation
+
+set.seed(1001)
+N <- 300
+
+trialno <- sample(c(1000:2000), N)
+exc1 <- rep(NA, N)
+exc1[sample(1:N, 15)] <- sample(c("Sample not collected", "MRI not collected",
+                                  "Other"), 15, replace = T, prob = c(0.4, 0.4, 0.2))
+
+induc <- rep(NA, N)
+induc[is.na(exc1)] <- trialno[is.na(exc1)]
+
+exc2 <- rep(NA, N)
+exc2[sample(1:N, 20)] <- sample(c("Sample not collected", "Dead",
+                                  "Other"), 20, replace = T, prob = c(0.4, 0.4, 0.2))
+exc2[is.na(induc)] <- NA
+
+exc <- ifelse(is.na(exc2), exc1, exc2)
+
+arm <- rep(NA, N)
+arm[is.na(exc)] <- sample(c("Conc", "Seq"), sum(is.na(exc)), replace = T)
+arm3 <- sample(c("Trt A", "Trt B", "Trt C"), N, replace = T)
+arm3[is.na(arm)] <- NA
+
+fow1 <- rep(NA, N)
+fow1[!is.na(arm)] <- sample(c("Withdraw", "Discontinued", "Death", "Other", NA),
+                            sum(!is.na(arm)), replace = T, 
+                            prob = c(0.05, 0.05, 0.05, 0.05, 0.8))
+fow2 <- rep(NA, N)
+fow2[!is.na(arm) & is.na(fow1)] <- sample(c("Protocol deviation", "Outcome missing", NA),
+                                          sum(!is.na(arm) & is.na(fow1)), replace = T, 
+                                          prob = c(0.05, 0.05, 0.9))
+
+
+df <- data.frame(trialno, exc1, induc, exc2, exc, arm, arm3, fow1, fow2)
+rm(trialno, exc1, induc, exc2, exc, arm, arm3, fow1, fow2, N)
+
+#First production
+
+out <- consort_plot(data = df,
+             orders = c(trialno = "Population",
+                          exc1    = "Excluded",
+                          arm     = "Allocated",
+                          fow1    = "Lost of Follow-up",
+                          trialno = "Finished Followup",
+                          fow2    = "Not evaluable for the final analysis",
+                          trialno = "Final Analysis"),
+             side_box = c("exc1", "fow1", "fow2"),
+             cex = 0.9)
+plot(out)
+
+```
+
+## Bibliography 
+
